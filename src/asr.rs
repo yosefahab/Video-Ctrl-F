@@ -13,13 +13,13 @@ pub fn asr(video_path: &str, output_path: &str) {
 }
 
 fn cpp_whisper_piped(audio_path: &str) {
-    let output = Command::new("../Video-Ctrl-F/models/cpp_whisper/main")
+    let output = Command::new("../models/cpp_whisper/main")
         .args([
             audio_path,
             "-ml",
             "1",
             "--model",
-            "../Video-Ctrl-F/models/cpp_whisper/models/ggml-base.en.bin",
+            "../models/cpp_whisper/models/ggml-base.en.bin",
             "--threads",
             "7",
             "-l",
@@ -44,13 +44,13 @@ fn cpp_whisper_piped(audio_path: &str) {
     println!("////////////////////////////////////");
 }
 fn cpp_whisper(audio_path: &str) {
-    let output = Command::new("../Video-Ctrl-F/models/cpp_whisper/main")
+    let output = Command::new("../models/cpp_whisper/main")
         .args([
             audio_path,
             "-ml",
             "1",
             "--model",
-            "../Video-Ctrl-F/models/cpp_whisper/models/ggml-base.en.bin",
+            "../models/cpp_whisper/models/ggml-base.en.bin",
             "--threads",
             "7",
             "-l",

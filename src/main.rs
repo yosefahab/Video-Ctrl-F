@@ -122,6 +122,3 @@ fn iterate_frames(video_path: &str) {
     println!("{width}x{height}");
     for (i, frame) in fi.enumerate() {}
 }
-
-//slave: [638, 617, 610, 603, 631, 652, 645, 624]
-//master: [638, 617, 610, 603, 631, 645, 624]

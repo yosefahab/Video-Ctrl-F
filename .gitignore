@@ -2,3 +2,4 @@
 /data
 /dump
 *.bin
+.DS_Store
