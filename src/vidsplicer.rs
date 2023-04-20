@@ -1,17 +1,31 @@
 pub mod ffmpeg_utils {
-    use regex::Regex;
-    use std::io::Result;
-    use std::path::Path;
-    use std::process::{Command, Output};
+    use std::path::{Path, PathBuf};
+    use std::process::{Command, Stdio};
+
+    #[derive(Debug)]
     pub struct Metadata {
-        pub width: u32,
-        pub height: u32,
-        duration: f32,
-        pub fps: u32,
-        num_frames: u32,
+        pub width: u64,
+        pub height: u64,
+        pub duration: f64,
+        pub num_frames: u64,
+        pub fps: u64,
     }
-    pub fn extract_keyframes(video_path: &str, output_path: &str) -> Result<Output> {
-        let output_path = Path::new(output_path).join("frame-%d.jpg");
+    #[derive(Debug)]
+    pub enum FFmpegResult {
+        Success(String),
+        Failure(String),
+    }
+    #[derive(Debug)]
+    pub enum FFprobeResult {
+        Success(Metadata),
+        Failure(String),
+    }
+
+    /// uses ffmpeg to extract keyframes from a video
+    pub fn extract_keyframes(video_path: &Path, output_path: &Path) -> FFmpegResult {
+        let output_path = PathBuf::from(output_path).join("%06d.jpg");
+        let output_path = output_path.to_str().unwrap();
+        let video_path = video_path.to_str().unwrap();
         let output = Command::new("ffmpeg")
             .args([
                 "-skip_frame",
@@ -28,17 +42,28 @@ pub mod ffmpeg_utils {
                 "2",
                 "-qmin",
                 "1",
-                output_path.to_str().unwrap(),
+                output_path,
             ])
-            .output()?;
-
-        println!("status: {}", output.status);
-        // println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-        // println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-        return Ok(output);
+            .output();
+        match output {
+            Ok(output) => match output.status.success() {
+                true => {
+                    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                    return FFmpegResult::Success(stdout);
+                }
+                false => {
+                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                    return FFmpegResult::Success(stderr);
+                }
+            },
+            Err(e) => return FFmpegResult::Failure(e.to_string()),
+        };
     }
-    pub fn conv2wav(video_path: &str, output_path: &str) -> Result<Output> {
-        let output_path = Path::new(output_path).join("audio.wav");
+    /// converts a video a .wav file
+    pub fn conv2wav(video_path: &Path, output_path: &Path) -> FFmpegResult {
+        let video_path = video_path.to_str().unwrap();
+        let output_path = PathBuf::from(output_path).join("audio.wav");
+        let output_path = output_path.to_str().unwrap();
         let output = Command::new("ffmpeg")
             .args([
                 "-i",
@@ -49,76 +74,92 @@ pub mod ffmpeg_utils {
                 "1",
                 "-c:a",
                 "pcm_s16le",
-                output_path.to_str().unwrap(),
+                output_path,
             ])
-            .output()?;
-
-        println!("status: {}", output.status);
-        // println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
-        // println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-        return Ok(output);
-    }
-    pub fn get_video_dims(video_path: &str) -> (u32, u32) {
-        let metadata: Metadata =
-            self::get_video_metadata(video_path).expect("Failed to get video metadata");
-        let width: u32 = metadata.width;
-        let height: u32 = metadata.height;
-        return (width, height);
-    }
-    pub fn get_video_metadata(video_path: &str) -> Result<Metadata> {
-        let output = Command::new("ffprobe")
-            .args(["-v", "quiet", "-show_format", "-show_streams", video_path])
-            .output()?;
-
-        let output_str = String::from_utf8(output.stdout).expect("Failed to decode ffprobe output");
-
-        let re = Regex::new(r"width=(\d+)").unwrap();
-        let width_match = re.captures(&output_str).unwrap();
-        let re = Regex::new(r"height=(\d+)").unwrap();
-        let height_match = re.captures(&output_str).unwrap();
-        let re = Regex::new(r"duration=([\d\.]+)").unwrap();
-        let duration_match = re.captures(&output_str).unwrap();
-        let re = Regex::new(r"r_frame_rate=(\d+)/(\d+)").unwrap();
-        let fps_match = re.captures(&output_str).unwrap();
-        let re = Regex::new(r"nb_frames=(\d+)").unwrap();
-        let num_frames_match = re.captures(&output_str).unwrap();
-
-        let width: u32 = width_match.get(1).unwrap().as_str().parse::<u32>().unwrap();
-        let height: u32 = height_match
-            .get(1)
-            .unwrap()
-            .as_str()
-            .parse::<u32>()
-            .unwrap();
-        let duration: f32 = duration_match
-            .get(1)
-            .unwrap()
-            .as_str()
-            .parse::<f32>()
-            .unwrap();
-        let fps: u32 = fps_match.get(1).unwrap().as_str().parse::<u32>().unwrap()
-            / fps_match.get(2).unwrap().as_str().parse::<u32>().unwrap();
-
-        let num_frames: u32 = num_frames_match
-            .get(1)
-            .unwrap()
-            .as_str()
-            .parse::<u32>()
-            .unwrap();
-
-        let metadata = Metadata {
-            width,
-            height,
-            duration,
-            fps,
-            num_frames,
+            .output();
+        match output {
+            Ok(output) => match output.status.success() {
+                true => {
+                    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+                    return FFmpegResult::Success(stdout);
+                }
+                false => {
+                    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+                    return FFmpegResult::Success(stderr);
+                }
+            },
+            Err(e) => return FFmpegResult::Failure(e.to_string()),
         };
-        return Ok(metadata);
+    }
+
+    /// returns (width, height) for a given video
+    pub fn get_video_dims(video_path: &Path) -> Result<(u64, u64), FFprobeResult> {
+        match get_video_metadata(video_path.to_str().unwrap()) {
+            FFprobeResult::Success(metadata) => {
+                return Ok((metadata.width, metadata.height));
+            }
+            FFprobeResult::Failure(e) => {
+                return Err(FFprobeResult::Failure(e));
+            }
+        }
+    }
+
+    pub fn get_video_metadata(video_path: &str) -> FFprobeResult {
+        // Execute the ffprobe command as a subprocess
+        let output = Command::new("ffprobe")
+            .args(&[
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=width,height,duration,r_frame_rate,nb_frames",
+                "-of",
+                "json",
+                video_path,
+            ])
+            .stdout(Stdio::piped())
+            .output();
+        match output {
+            Ok(output) => {
+                let metadata_json = String::from_utf8(output.stdout).unwrap();
+                let metadata: serde_json::Value = serde_json::from_str(&metadata_json).unwrap();
+                let video_stream = &metadata["streams"][0];
+                let width = video_stream["width"].as_u64().unwrap();
+                let height = video_stream["height"].as_u64().unwrap();
+                let duration =
+                    parse_string::<f64>(video_stream["duration"].as_str().unwrap()).unwrap();
+                let num_frames =
+                    parse_string::<u64>(video_stream["nb_frames"].as_str().unwrap()).unwrap();
+                let fps = parse_frame_rate(&video_stream["r_frame_rate"].as_str().unwrap());
+                return FFprobeResult::Success(Metadata {
+                    width: width,
+                    height: height,
+                    duration: duration,
+                    num_frames: num_frames,
+                    fps: fps,
+                });
+            }
+            Err(e) => {
+                return FFprobeResult::Failure(e.to_string());
+            }
+        }
+    }
+    fn parse_string<T: std::str::FromStr>(s: &str) -> Result<T, <T as std::str::FromStr>::Err> {
+        s.parse::<T>()
+    }
+    fn parse_frame_rate(fps: &str) -> u64 {
+        let parts: Vec<&str> = fps.split('/').collect();
+        let num = parse_string::<f64>(parts[0]).unwrap();
+        let den = parse_string::<f64>(parts[1]).unwrap();
+        return (num / den) as u64;
     }
 }
 
+// !WIP
 pub mod frames_iterator {
     use std::io::Read;
+    use std::path::Path;
     use std::process::{Command, Stdio};
 
     pub struct VideoFramesIterator {
@@ -126,7 +167,8 @@ pub mod frames_iterator {
         buffer: [u8; 1024],
     }
     impl VideoFramesIterator {
-        pub fn new(video_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        pub fn new(video_path: &Path) -> Result<Self, Box<dyn std::error::Error>> {
+            let video_path = video_path.to_str().unwrap();
             let ffmpeg_command = Command::new("ffmpeg")
                 .args([
                     "-i",

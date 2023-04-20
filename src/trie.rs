@@ -11,9 +11,9 @@ fn is_alphabets_only(word: &str) -> bool {
     return true;
 }
 
-// #[derive(Default)]
 pub struct Trie {
     children: [Option<Box<Trie>>; 26],
+    // children: Option<HashMap<char, Box<Trie>>>,
     timestamps: Option<Vec<u64>>,
 }
 #[derive(Debug)]
@@ -35,24 +35,21 @@ impl Trie {
             timestamps: None,
         };
     }
-    ///
     /// returns: new trie instance after populating it with the given word and timestamp
-    ///
+    #[allow(unused)]
     pub fn from_string(word: &str, timestamp: u64) -> Trie {
         let mut trie = Trie::new();
-        trie.insert(word, timestamp);
+        trie.insert(word, timestamp).unwrap();
         return trie;
     }
-    ///
     /// returns: an ok if insertion was successful or Error
-    ///
     pub fn insert(&mut self, word: &str, timestamp: u64) -> Result<(), Error> {
         if !is_alphabets_only(word) {
             return Err(Error::NonWord);
         }
 
         let mut current_node = self;
-        for c in word.chars().map(char_to_index) {
+        for c in word.to_lowercase().chars().map(char_to_index) {
             current_node = current_node.children[c].get_or_insert(Box::new(Trie::new()));
         }
 
@@ -63,29 +60,7 @@ impl Trie {
 
         return Ok(());
     }
-
-    ///
-    /// returns: a boolean indicating wether a word exists or not
-    ///
-    pub fn exists(&self, word: &str) -> Result<bool, Error> {
-        if !is_alphabets_only(word) {
-            return Err(Error::NonWord);
-        }
-        let mut current_node = self;
-        for c in word.chars().map(char_to_index) {
-            match current_node.children[c] {
-                Some(ref next_node) => {
-                    current_node = next_node;
-                }
-                None => return Ok(false),
-            }
-        }
-        return Ok(true);
-    }
-
-    ///
     /// returns: None if word does not exist, timestamp if it does
-    ///
     pub fn get_timestamps(&self, word: &str) -> Option<Vec<u64>> {
         if !is_alphabets_only(word) {
             return None;

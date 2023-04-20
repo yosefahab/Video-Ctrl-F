@@ -1,35 +1,31 @@
-pub mod lookup {
-    use super::tokenizer;
+use crate::trie::Trie;
+use regex::Regex;
+use std::collections::{HashMap, HashSet};
 
-    use crate::trie::Trie;
-    use std::collections::{HashMap, HashSet};
-    pub static mut INDEX: Option<HashMap<String, Vec<u64>>> = None;
+#[allow(unused)]
+pub struct Indexer {
+    dict: HashMap<String, Vec<u64>>,
+    pub trie: Trie,
+}
 
-    pub static mut LOOKUP: Option<Trie> = None;
-
-    fn get_index() -> &'static mut HashMap<String, Vec<u64>> {
-        unsafe {
-            return INDEX.get_or_insert(HashMap::new());
-        }
+impl Indexer {
+    pub fn new() -> Self {
+        return Self {
+            dict: HashMap::new(),
+            trie: Trie::new(),
+        };
     }
-
-    fn get_lookup() -> &'static mut Trie {
-        unsafe {
-            return LOOKUP.get_or_insert(Trie::new());
-        }
-    }
-
-    pub fn update(text: &str, timestamp: u64) {
-        for word in tokenizer::get_words(text) {
-            get_lookup().insert(&word, timestamp);
-            // let entry = get_index().entry(word);
+    pub fn update(&mut self, text: &str, timestamp: u64) {
+        for word in self.tokenize(text) {
+            self.trie.insert(&word, timestamp).unwrap();
+            // let entry = self.dict.entry(word);
             // entry.or_default().push(timestamp);
         }
     }
-    pub fn search(text: &str) -> Vec<u64> {
+    pub fn search(&mut self, text: &str) -> Vec<u64> {
         let mut timestamps = Vec::new();
-        for word in tokenizer::get_words(text) {
-            if let Some(mut word_stamps) = get_lookup().get_timestamps(&word) {
+        for word in self.tokenize(text) {
+            if let Some(word_stamps) = self.trie.get_timestamps(&word) {
                 if timestamps.is_empty() {
                     timestamps = word_stamps;
                 } else {
@@ -39,19 +35,12 @@ pub mod lookup {
         }
         return timestamps;
     }
-}
-pub mod tokenizer {
-    use regex::Regex;
-    use std::collections::HashSet;
-
-    pub fn get_words(text: &str) -> HashSet<String> {
-        let mut set: HashSet<String> = HashSet::new();
-        let re = Regex::new(r"\W+").unwrap();
-        for word in re.replace_all(&text.to_lowercase(), " ").split(' ') {
-            if !word.is_empty() {
-                set.insert(word.to_string());
-            }
-        }
-        return set;
+    pub fn tokenize(&mut self, text: &str) -> HashSet<String> {
+        let re = Regex::new(r"\w+").unwrap();
+        let words: HashSet<String> = re
+            .find_iter(text.trim().to_lowercase().as_str())
+            .map(|m| m.as_str().to_owned())
+            .collect();
+        return words;
     }
 }
