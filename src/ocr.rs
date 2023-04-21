@@ -5,43 +5,28 @@ use std::collections::HashSet;
 use std::io::Cursor;
 use std::sync::MutexGuard;
 
+pub fn ocr(path: &str) -> String {
+    return ocr_from_disk(path, &mut get_api());
+}
 pub fn get_api() -> LepTess {
-    let mut api = leptess::LepTess::new(
-        Some("../Video-Ctrl-F/models/traineddata/tessdata_fast"),
-        "eng",
-    )
-    .unwrap();
+    let mut api = leptess::LepTess::new(Some("models/traineddata/tessdata_fast"), "eng").unwrap();
     api.set_variable(leptess::Variable::TesseditPagesegMode, "3")
         .expect("Failed to set tesseract variable");
     api.set_variable(leptess::Variable::TesseditOcrEngineMode, "2")
         .expect("Failed to set tesseract variable");
-    api.set_variable(leptess::Variable::UserDefinedDpi, "100")
-        .expect("Failed to set tesseract variable");
+    // api.set_variable(leptess::Variable::UserDefinedDpi, "100")
+    // .expect("Failed to set tesseract variable");
     return api;
 }
 
-pub fn ocr_from_disk(path: &str, api: &mut LepTess) -> String {
+fn ocr_from_disk(path: &str, api: &mut LepTess) -> String {
     api.set_image(path).unwrap();
     return api.get_utf8_text().expect("OCR failed");
 }
 
-// pub fn ocr_from_mem(image: &DynamicImage, api: &mut LepTess) -> HashSet<String> {
-//     let mut jpg_buffer = Vec::new();
-//     image
-//         .write_to(
-//             &mut Cursor::new(&mut jpg_buffer),
-//             image::ImageOutputFormat::Jpeg(80),
-//         )
-//         .expect("failed to convert buffer to jpeg");
-//     api.set_image_from_mem(&jpg_buffer);
-//     let text = api.get_utf8_text().unwrap();
-//     return tokenizer::get_words(text);
-// }
-
-pub fn threaded_ocr_from_disk(path: &str, mut api: MutexGuard<LepTess>) -> String {
+pub fn threaded_ocr(path: &str, mut api: MutexGuard<LepTess>) -> String {
     api.set_image(path).unwrap();
-    let text = api.get_utf8_text().unwrap();
-    return text;
+    return api.get_utf8_text().expect("Threaded OCR failed");
 }
 
 // enum OcrEngineMode {

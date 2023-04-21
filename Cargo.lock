@@ -855,6 +855,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "stop-words"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30c71f6546118f8f8fbc16434ff5ba695bc9c31616b14b1a589738d0b6ace15e"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -965,6 +974,7 @@ dependencies = [
  "nlprule",
  "regex",
  "serde_json",
+ "stop-words",
  "threadpool",
  "whisper-rs",
 ]

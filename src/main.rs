@@ -1,5 +1,4 @@
 #![allow(clippy::needless_return)]
-
 mod asr;
 mod disk;
 mod gec;
@@ -17,7 +16,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 use threadpool::ThreadPool;
-use vidsplicer::{ffmpeg_utils, frames_iterator::VideoFramesIterator};
+use vidsplicer::{
+    ffmpeg_utils,
+    ffmpeg_utils::{FFmpegResult, FFprobeResult},
+    frames_iterator::VideoFramesIterator,
+};
 
 enum PipelineResult {
     Error(ExitCode),
@@ -79,18 +82,18 @@ fn demo(video_path: &Path) -> PipelineResult {
 
     ////////////////////// Video Splicing //////////////////////////
     match ffmpeg_utils::extract_keyframes(&video_path, &frames_path) {
-        ffmpeg_utils::FFmpegResult::Failure(error) => {
+        FFmpegResult::Failure(error) => {
             return PipelineResult::Error(ExitCode::KeyframesError(error));
         }
-        ffmpeg_utils::FFmpegResult::Success(_) => {
+        FFmpegResult::Success(_) => {
             println!("Successfully extracted keyframes...");
         }
     }
     match ffmpeg_utils::conv2wav(&video_path, &dump_path) {
-        ffmpeg_utils::FFmpegResult::Failure(error) => {
+        FFmpegResult::Failure(error) => {
             return PipelineResult::Error(ExitCode::WavConversionError(error));
         }
-        ffmpeg_utils::FFmpegResult::Success(_) => {
+        FFmpegResult::Success(_) => {
             println!("Successfully converted to WAV...");
         }
     }
@@ -141,8 +144,7 @@ fn ocr_dir(frames_path: &str, fps: u32, indexer: Indexer) -> PipelineResult {
             let api = apis_pool.pop().unwrap();
             drop(apis_pool);
             ////////////////////////////////////
-            let text =
-                ocr::threaded_ocr_from_disk(entry.path().to_str().unwrap(), api.lock().unwrap());
+            let text = ocr::threaded_ocr(entry.path().to_str().unwrap(), api.lock().unwrap());
             // put an api back in the pool and let go of the lock
             let mut apis_pool = apis.lock().unwrap();
             apis_pool.push(api);
@@ -180,7 +182,7 @@ fn iterate_frames(video_path: &Path) -> ExitCode {
             return ExitCode::Success;
         }
         Err(error) => match error {
-            ffmpeg_utils::FFprobeResult::Failure(error) => return ExitCode::FFProbeError(error),
+            FFprobeResult::Failure(error) => return ExitCode::FFProbeError(error),
             _ => return ExitCode::Success,
         },
     }

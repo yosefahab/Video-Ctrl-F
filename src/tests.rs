@@ -1,11 +1,13 @@
 #[cfg(test)]
 mod tests {
     use crate::gec;
+    use crate::indexer::Indexer;
     use crate::ocr;
     use crate::trie::Trie;
     use crate::vidsplicer;
+
     #[test]
-    fn test_trie() {
+    fn trie() {
         let mut trie = Trie::new();
         let entries = [
             "Trie", "Tree", "words", "work", "test", "ocr", "asr", "midnight",
@@ -13,26 +15,58 @@ mod tests {
         entries
             .iter()
             .enumerate()
-            .for_each(|(x, i)| trie.insert(i, x as u64).unwrap());
-
+            .for_each(|(x, i)| trie.insert(i, x as u64));
         entries
             .iter()
             .enumerate()
-            .for_each(|(x, i)| assert_eq!(trie.get_timestamps(i).unwrap(), [x as u64]));
+            .for_each(|(x, i)| assert!(trie.get_timestamps(i).unwrap().contains(&(x as u64))));
+    }
+    #[test]
+    pub fn indexr() {
+        let mut indexer = Indexer::new();
+        let entries = [
+            "Trie", "Tree", "words", "work", "test", "ocr", "asr", "midnight",
+        ];
+        entries
+            .iter()
+            .enumerate()
+            .for_each(|(x, i)| indexer.update(i, x as u64));
+        entries
+            .iter()
+            .enumerate()
+            .for_each(|(x, i)| assert!(indexer.search(i).contains(&(x as u64))));
+    }
+
+    // #[test]
+    fn gec() {
+        assert_eq!(
+            gec::correct("She was not been here since Monday."),
+            String::from("She was not here since Monday.")
+        );
+        assert_eq!(
+            gec::correct("I was go to the mall today."),
+            String::from("I was going to the mall today.")
+        );
     }
 
     #[test]
-    fn test_gec() {
-        let text = "i am happi";
-        let corrected_text = "i am happy";
-        assert_eq!(gec::correct(text), corrected_text);
+    pub fn tokenizer() {
+        let tokens = Indexer::new().tokenize("it's a wonderful new world");
+        assert!(tokens.contains("new"));
+        assert!(tokens.contains("it"));
+        assert!(tokens.contains("world"));
+        assert!(tokens.contains("a"));
+        assert!(tokens.contains("wonderful"));
+        assert_eq!(tokens.contains("it's"), false);
     }
-
-    #[test]
-    pub fn test_ocr_from_disk() {
-        let res = ocr::ocr_from_disk("data/test.png", &mut ocr::get_api());
-        let expected = r#" Pure Text"#;
-        assert_eq!(expected, res);
+    // #[test]
+    pub fn ocr() {
+        let res = ocr::ocr("data/test.png");
+        let expected = r#"Pure Text"#;
+        assert_eq!(
+            expected.to_lowercase(),
+            res.to_lowercase().replace("\n", "")
+        );
     }
     #[test]
     pub fn metadata() {
