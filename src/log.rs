@@ -13,5 +13,6 @@ pub fn log(error: ExitCode) {
             eprintln!("Failed to convert to WAV, reason: \n{}", info)
         }
         ExitCode::FFProbeError(info) => eprintln!("FFprobe error, reason: \n{}", info),
+        ExitCode::SaveError(info) => eprintln!("Failed to save index, reason: \n{}", info),
     }
 }

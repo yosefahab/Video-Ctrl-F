@@ -53,7 +53,7 @@ pub mod ffmpeg_utils {
                 }
                 false => {
                     let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                    return FFmpegResult::Success(stderr);
+                    return FFmpegResult::Failure(stderr);
                 }
             },
             Err(e) => return FFmpegResult::Failure(e.to_string()),
@@ -94,7 +94,7 @@ pub mod ffmpeg_utils {
 
     /// returns (width, height) for a given video
     pub fn get_video_dims(video_path: &Path) -> Result<(u64, u64), FFprobeResult> {
-        match get_video_metadata(video_path.to_str().unwrap()) {
+        match get_video_metadata(video_path) {
             FFprobeResult::Success(metadata) => {
                 return Ok((metadata.width, metadata.height));
             }
@@ -104,10 +104,11 @@ pub mod ffmpeg_utils {
         }
     }
 
-    pub fn get_video_metadata(video_path: &str) -> FFprobeResult {
+    pub fn get_video_metadata(video_path: &Path) -> FFprobeResult {
         // Execute the ffprobe command as a subprocess
+        let video_path = video_path.to_str().unwrap();
         let output = Command::new("ffprobe")
-            .args(&[
+            .args([
                 "-v",
                 "error",
                 "-select_streams",
@@ -131,13 +132,13 @@ pub mod ffmpeg_utils {
                     parse_string::<f64>(video_stream["duration"].as_str().unwrap()).unwrap();
                 let num_frames =
                     parse_string::<u64>(video_stream["nb_frames"].as_str().unwrap()).unwrap();
-                let fps = parse_frame_rate(&video_stream["r_frame_rate"].as_str().unwrap());
+                let fps = parse_frame_rate(video_stream["r_frame_rate"].as_str().unwrap());
                 return FFprobeResult::Success(Metadata {
-                    width: width,
-                    height: height,
-                    duration: duration,
-                    num_frames: num_frames,
-                    fps: fps,
+                    width,
+                    height,
+                    duration,
+                    num_frames,
+                    fps,
                 });
             }
             Err(e) => {

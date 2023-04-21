@@ -1,23 +1,23 @@
+use crate::config::constants::NUM_THREADS;
 use hound::{SampleFormat, WavReader};
 use std::{path::Path, process::Command};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext};
-
+/// Returns ctx segments: (word, timestamp)
 pub fn asr(audio_path: &Path) -> WhisperContext {
-    let whisper_path =
-        Path::new("/Users/youssefahab/Development/GP/Video-Ctrl-F/models/cpp_whisper");
+    let whisper_path = Path::new("models/cpp_whisper");
 
     let model_path = Path::new(whisper_path).join("models/ggml-base.en.bin");
 
     // whisper_cpp(&audio_path, whisper_path, &model_path);
     // println!("DONE");
-    return whisper_rs(&audio_path, &model_path);
+    return whisper_rs(audio_path, &model_path);
 }
 fn whisper_rs(audio_path: &Path, model_path: &Path) -> WhisperContext {
     let original_samples = parse_wav_file(audio_path);
     let samples = whisper_rs::convert_integer_to_float_audio(&original_samples);
     let mut ctx = WhisperContext::new(&model_path.to_string_lossy()).expect("failed to open model");
     let mut params = FullParams::new(SamplingStrategy::default());
-    params.set_n_threads(7);
+    params.set_n_threads(NUM_THREADS);
     params.set_language(Some("en"));
     params.set_translate(false);
     params.set_print_special(false);

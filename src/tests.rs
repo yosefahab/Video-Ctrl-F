@@ -1,5 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+    use std::path::Path;
+
     use crate::gec;
     use crate::indexer::Indexer;
     use crate::ocr;
@@ -36,8 +39,18 @@ mod tests {
             .enumerate()
             .for_each(|(x, i)| assert!(indexer.search(i).contains(&(x as u64))));
     }
+    #[test]
+    fn tokenizer() {
+        let tokens = Indexer::new().tokenize("it's a wonderful new world");
+        assert!(tokens.contains("new"));
+        assert!(tokens.contains("it"));
+        assert!(tokens.contains("world"));
+        assert!(tokens.contains("a"));
+        assert!(tokens.contains("wonderful"));
+        assert_eq!(tokens.contains("it's"), false);
+    }
 
-    // #[test]
+    #[test]
     fn gec() {
         assert_eq!(
             gec::correct("She was not been here since Monday."),
@@ -48,29 +61,36 @@ mod tests {
             String::from("I was going to the mall today.")
         );
     }
+    #[test]
+    fn lep_ocr() {
+        let res = ocr::ocr("data/test.png", &mut ocr::get_api()).to_lowercase();
+        let res = res.split_whitespace().collect::<HashSet<&str>>();
 
-    #[test]
-    pub fn tokenizer() {
-        let tokens = Indexer::new().tokenize("it's a wonderful new world");
-        assert!(tokens.contains("new"));
-        assert!(tokens.contains("it"));
-        assert!(tokens.contains("world"));
-        assert!(tokens.contains("a"));
-        assert!(tokens.contains("wonderful"));
-        assert_eq!(tokens.contains("it's"), false);
-    }
-    // #[test]
-    pub fn ocr() {
-        let res = ocr::ocr("data/test.png");
-        let expected = r#"Pure Text"#;
-        assert_eq!(
-            expected.to_lowercase(),
-            res.to_lowercase().replace("\n", "")
-        );
+        let expected = r#"Pure Text"#.to_lowercase();
+        let expected = expected.split_whitespace().collect::<HashSet<&str>>();
+        assert_eq!(expected, res);
     }
     #[test]
-    pub fn metadata() {
-        let video_path = "data/patterns.mp4";
+    fn tess_ocr() {
+        let res = ocr::tess_ocr("data/test.png", ocr::get_tess_api()).to_lowercase();
+        let res = res.split_whitespace().collect::<HashSet<&str>>();
+
+        let expected = r#"Pure Text"#.to_lowercase();
+        let expected = expected.split_whitespace().collect::<HashSet<&str>>();
+        assert_eq!(expected, res);
+    }
+    #[test]
+    fn rt_ocr() {
+        let res = ocr::rt_ocr("data/test.png").to_lowercase();
+        let res = res.split_whitespace().collect::<HashSet<&str>>();
+
+        let expected = r#"Pure Text"#.to_lowercase();
+        let expected = expected.split_whitespace().collect::<HashSet<&str>>();
+        assert_eq!(expected, res);
+    }
+    #[test]
+    fn metadata() {
+        let video_path = Path::new("data/patterns.mp4");
         match vidsplicer::ffmpeg_utils::get_video_metadata(video_path) {
             vidsplicer::ffmpeg_utils::FFprobeResult::Success(metadata) => {
                 assert_eq!(metadata.width, 854);
@@ -80,5 +100,15 @@ mod tests {
             }
             vidsplicer::ffmpeg_utils::FFprobeResult::Failure(_) => (),
         }
+    }
+
+    #[test]
+    fn get_timestamp() {
+        let filename = "000513.jpg";
+        let fps = 1;
+        let num_part = filename.trim_end_matches(".jpg");
+        let mut frame_number: u64 = num_part.parse::<u64>().expect("Not a valid u64");
+        frame_number /= fps;
+        assert_eq!(frame_number, 513);
     }
 }

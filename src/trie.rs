@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+#![allow(unused)]
 
+use std::collections::HashMap;
 pub struct Trie {
     children: HashMap<char, Box<Trie>>,
     timestamps: Option<Vec<u64>>,
@@ -19,7 +20,7 @@ impl Trie {
             current_node = current_node
                 .children
                 .entry(c)
-                .or_insert(Box::new(Trie::new()));
+                .or_insert_with(|| Box::new(Trie::new()));
         }
         current_node
             .timestamps

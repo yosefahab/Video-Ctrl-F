@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use nlprule::{Rules, Tokenizer};
 pub fn correct(text: &str) -> String {
     let mut tokenizer_bytes: &'static [u8] = include_bytes!("../models/en_tokenizer.bin");

@@ -1,5 +1,7 @@
 /target
 /data
 /dump
+/models
 *.bin
 .DS_Store
+*.log

@@ -5,13 +5,26 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[profile.release]
+strip = true # Automatically strip symbols from the binary
+opt-level = 3   
+lto = true # Enable link time optimization
+codegen-units = 1
+
 [dependencies]
-threadpool = "1.8.1"
-regex = "1"
+regex = "1.8.0"
+serde_json = "1.0.96"
+serde = "1.0.160" 
+
+rusty-tesseract = "1.1.4"
+tesseract = "0.13.0"
 leptess = "0.14.0"
-nlprule = "0.6.4"
+threadpool = "1.8.1"
 image = "0.24.5"
-serde_json = "1.0.93"
+
 whisper-rs = "0.5.0"
 hound = "3.5.0"
+
+nlprule = "0.6.4"
 stop-words = "0.7.1"
+
